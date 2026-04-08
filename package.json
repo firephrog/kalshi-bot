@@ -1,0 +1,29 @@
+{
+  "name": "kalshi-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "charles's auto trading bot but i tried to make it",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/firephrog/kalshi-bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/firephrog/kalshi-bot/issues"
+  },
+  "homepage": "https://github.com/firephrog/kalshi-bot#readme",
+  "dependencies": {
+    "kalshi-sdk": "^0.0.13",
+    "kalshi-typescript": "^3.11.0",
+    "mathjs": "^15.2.0",
+    "node-cron": "^4.2.1",
+    "winston": "^3.19.0"
+  }
+}
