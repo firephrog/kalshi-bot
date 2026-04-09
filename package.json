@@ -20,6 +20,9 @@
   },
   "homepage": "https://github.com/firephrog/kalshi-bot#readme",
   "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-backend-wasm": "^4.22.0",
+    "dotenv": "^17.4.1",
     "kalshi-sdk": "^0.0.13",
     "kalshi-typescript": "^3.11.0",
     "mathjs": "^15.2.0",

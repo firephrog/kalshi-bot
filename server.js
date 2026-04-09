@@ -2,6 +2,7 @@
 import kalshiPkg from 'kalshi-typescript';
 const kalshi = kalshiPkg.default || kalshiPkg;
 const { Configuration, ExchangeApi, MarketApi, PortfolioApi } = kalshi;
+import { findArbitrage } from './strategy.js';
 
 //other imports
 import fs from 'node:fs';
@@ -35,3 +36,29 @@ async function check() {
     }
 }
 check();
+
+//automatic arbritage
+
+async function scanForGaps() {
+    try {
+        // Fetch multiple markets at once
+        const response = await marketsApi.getMarkets({ limit: 50, status: 'open' });
+        
+        for (const market of response.data.markets) {
+            const opportunity = findArbitrage(market);
+            
+            if (opportunity.action === 'ARB') {
+                console.log(`!!! ARB DETECTED on ${opportunity.target} !!!`);
+                console.log(`Cost: ${opportunity.cost}¢ | Guaranteed Profit: ${opportunity.profit}¢`);
+                
+                // EXECUTION: You must buy BOTH sides immediately
+                // await buyBothSides(opportunity.target);
+            }
+        }
+    } catch (e) {
+        console.error("Scanner error:", e.message);
+    }
+}
+
+
+setInterval(scanForGaps, 10);
