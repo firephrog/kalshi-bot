@@ -95,34 +95,121 @@ async function loadData() {
     }
 }
 
+async function pickOptimalGPU() {
+    if (navigator.gpu) {
+        await tf.setBackend('webgpu');
+    } else {
+        await tf.setBackend('webgl');
+    }
+    console.log("Using GPU:", tf.getBackend());
+}
+pickOptimalGPU();
 
-async function trainModel() {
+//old
+// async function trainModel() {
+//     const model = tf.sequential();
+//     model.add(tf.layers.dense({ units: 12, inputShape: [3], activation: 'relu' }));
+//     model.add(tf.layers.dense({ units: 1 }));
+//     model.compile({ optimizer: tf.train.adam(0.01), loss: 'meanSquaredError' });
+
+//     console.log("Training model...");
+
+//     for (let i = 0; i < history.length-1; i++) {
+//         const today = history[i];
+//         const actualTomorrow = history[i+1].temp;
+
+//         //predict
+//         const input = tf.tensor2d([[today.temp/MAX_TEMP, today.press/1100, today.humid/100]]);
+//         const predictionTensor = model.predict(input);
+//         const predictedTemp = (predictionTensor.dataSync()[0] * MAX_TEMP).toFixed(1);
+
+//         const target = tf.tensor2d([[actualTomorrow / MAX_TEMP]]);
+
+//         await model.fit(input, target, { epochs: 5, verbose: 0 });
+
+//         console.log(`Day ${i}: Predicted ${predictedTemp}°C | Actual ${actualTomorrow}°C | Error: ${Math.abs(predictedTemp - actualTomorrow).toFixed(1)}`);
+//     }
+
+//     console.log('Finished training');
+
+//     saveModel(model);
+// }
+
+async function trainModel(history) {
+    const MAX_TEMP = 50; // Max expected temperature
+    const MAX_PRESS = 1100; // Max expected pressure
+    const MAX_HUMID = 100; // Max expected humidity
+
+    // 1. Setup the Model Architecture
     const model = tf.sequential();
-    model.add(tf.layers.dense({ units: 12, inputShape: [3], activation: 'relu' }));
+    
+    // Hidden Layer 1: 16 neurons to find initial patterns
+    model.add(tf.layers.dense({ 
+        units: 16, 
+        inputShape: [3], 
+        activation: 'relu' 
+    }));
+    
+    // Hidden Layer 2: 8 neurons to refine the logic
+    model.add(tf.layers.dense({ 
+        units: 8, 
+        activation: 'relu' 
+    }));
+    
+    // Output Layer: 1 neuron for the predicted temperature
     model.add(tf.layers.dense({ units: 1 }));
-    model.compile({ optimizer: tf.train.adam(0.01), loss: 'meanSquaredError' });
 
-    console.log("Training model...");
+    model.compile({ 
+        optimizer: tf.train.adam(0.005), 
+        loss: 'meanSquaredError' 
+    });
 
-    for (let i = 0; i < history.length-1; i++) {
+    // 2. Prepare and Normalize Data from JSON
+    const inputs = [];
+    const labels = [];
+
+    for (let i = 0; i < history.length - 1; i++) {
         const today = history[i];
-        const actualTomorrow = history[i+1].temp;
+        const tomorrow = history[i + 1];
 
-        //predict
-        const input = tf.tensor2d([[today.temp/MAX_TEMP, today.press/1100, today.humid/100]]);
-        const predictionTensor = model.predict(input);
-        const predictedTemp = (predictionTensor.dataSync()[0] * MAX_TEMP).toFixed(1);
+        // Normalize all values between 0 and 1
+        inputs.push([
+            today.temp / MAX_TEMP, 
+            today.press / MAX_PRESS, 
+            today.humid / MAX_HUMID
+        ]);
 
-        const target = tf.tensor2d([[actualTomorrow / MAX_TEMP]]);
-
-        await model.fit(input, target, { epochs: 5, verbose: 0 });
-
-        console.log(`Day ${i}: Predicted ${predictedTemp}°C | Actual ${actualTomorrow}°C | Error: ${Math.abs(predictedTemp - actualTomorrow).toFixed(1)}`);
+        // The target is tomorrow's temperature (also normalized)
+        labels.push([tomorrow.temp / MAX_TEMP]);
     }
 
-    console.log('Finished training');
+    // Convert arrays to Tensors
+    const xs = tf.tensor2d(inputs);
+    const ys = tf.tensor2d(labels);
 
-    saveModel(model);
+    console.log(`Training on ${history.length} days of data...`);
+
+    await model.fit(xs, ys, {
+        epochs: 100,    
+        shuffle: true,    
+        batchSize: 32,  
+        callbacks: {
+            onEpochEnd: (epoch, logs) => {
+                if (epoch % 10 === 0) {
+                    console.log(`Epoch ${epoch}: Loss = ${logs.loss.toFixed(6)}`);
+                }
+            }
+        }
+    });
+
+    console.log('Training complete!');
+    xs.dispose();
+    ys.dispose();
+    if (typeof saveModel === 'function') {
+        saveModel(model);
+    }
+    
+    return model;
 }
 
 
