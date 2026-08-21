@@ -1,2 +1,2 @@
 # kalshi-bot
-charles's auto trading bot but i tried to make it
+discontinued, weather prediction market bot that runs on kalshi
